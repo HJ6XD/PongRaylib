@@ -31,6 +31,7 @@ char* screenMsg = nullptr;
 //TODO sustituir con un singleton
 Network *network;
 SocketHandle socket = nullptr;
+SocketHandle clientSocket = nullptr; 
 
 //parámetros de los jugadores
 int playerWidth = 20;
@@ -125,16 +126,22 @@ void CreateServer()
 	player2Pos = { (float)GetScreenWidth() - 40, (float)GetScreenHeight() / 2 - playerHeight / 2 };
 	player2Vel = { 0, 0 };
 	ballPos = { (float)GetScreenWidth() / 2, (float)GetScreenHeight() / 2 };
+
+	LOG("sizeof sockaddr_in: " << network->sizeOfsockaddr_in());
 }
 
 void UpdateServer()
 {
 	//primero recibemos los datos del cliente
 	char buffer[BUFFLEN];
+
+	AddressHandle remoteAddress = malloc(network->sizeOfsockaddr_in());
+
 	//debemos procesar todos los mensajes recibidos para evitar lag
-	while (network->receiveFrom(socket, buffer, BUFFLEN))
+	while (network->receiveFrom(socket, buffer, BUFFLEN, remoteAddress))
 	{
-		LOG("Recibido: " << buffer);
+		//LOG("Recibido: " << buffer);
+		LOG( (remoteAddress == nullptr ? "null":"si existe" ));
 		//deserializar los datos del cliente que vienen en formato "P2,x,y"
 		if (strncmp(buffer, "P2", 2) == 0) // si el mensaje empieza con "P2"
 		{
@@ -144,7 +151,7 @@ void UpdateServer()
 			if (token != nullptr)
 			{
 				player2Pos.y = atof(token);
-				LOG("Jugador 2 pos Y: " << player2Pos.y);
+				//LOG("Jugador 2 pos Y: " << player2Pos.y);
 			}
 		}
 	}
@@ -169,7 +176,23 @@ void UpdateServer()
 	//LOG("vel: " << player1Vel.y);
 	//la posicion del jugador 2 se actualiza con lo que envía el cliente
 
+	//enviar al cliente la posición del jugador 1 y la bola
+	if( remoteAddress != nullptr)
+	{
+		sprintf(buffer, "P1,%f,%f,%f", ballPos.x, ballPos.y, player1Pos.y);
+		if (!network->sendTo(socket, buffer, remoteAddress))
+		{
+			LOG("Error al enviar datos al cliente");
+			return;
+		}
+	}
+	else
+	{
+		LOG("remote address null, cliente no conectado");
+	}
 
+	
+	
 
 }
 
@@ -185,6 +208,7 @@ void CreateClient()
 	ballPos = { 0,0 };
 
 	socket = network->createSocket();
+	network->setNonBlocking(socket);
 	if (socket == nullptr)
 	{
 		LOG("Error al crear socket");
@@ -199,6 +223,26 @@ void CreateClient()
 bool directInput = true;
 void UpdateClient()
 {
+	//primero recibimos los datos del servidor
+	char buffer[BUFFLEN];
+	AddressHandle remoteAddress = nullptr;
+	//debemos procesar todos los mensajes recibidos para evitar lag
+	while (network->receiveFrom(socket, buffer, BUFFLEN, remoteAddress))
+	{
+		if (strncmp(buffer, "P1", 2) == 0) // si el mensaje empieza con "P1"
+		{
+			LOG("Recibido: " << buffer);
+			//separar el segundo valor separado por coma usando strtok
+			char* token = strtok(buffer + 3, ","); // saltar "P1,"
+			ballPos.x = atof(token);
+			token = strtok(nullptr, ","); // saltar x
+			ballPos.y = atof(token);
+			token = strtok(nullptr, ","); // saltar y
+			player1Pos.y = atof(token);
+		}
+	}
+
+
 	//Por convencion, el cliente es el jugador 2 y está a la derecha
 	if (IsKeyDown(KEY_W) && player2Pos.y > 0)
 	{
@@ -219,7 +263,6 @@ void UpdateClient()
 		player2Vel.y += (player2DesVel.y - player2Vel.y) * 10 * GetFrameTime();
 		player2Pos.y += player2Vel.y * GetFrameTime();
 	}
-	char buffer[BUFFLEN];
 	//en realidad no se necesita enviar X pero igual la serializamos
 	sprintf(buffer, "P2,%f,%f", player2Pos.x, player2Pos.y);
 	network->sendTo(socket, buffer, "127.0.0.1", PORT);

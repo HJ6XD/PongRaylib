@@ -1,6 +1,7 @@
 #pragma once
 typedef unsigned short USHORT;
 typedef void* SocketHandle;
+typedef void* AddressHandle;
 
 class Network
 {
@@ -12,10 +13,13 @@ public:
 	SocketHandle createSocket();
 	bool setNonBlocking(SocketHandle socket);
 	bool bindServer(SocketHandle socket, USHORT port);
+	//para enviar de cliente a servidor 
 	bool sendTo(SocketHandle socket, const char* msg, const char* ip, USHORT port);
-	bool receiveFrom(SocketHandle socket, char* buffer, int bufferSize);
-	//int receive(SocketHandle socket, char* buffer, int bufferSize);
-	//int send(SocketHandle socket, const char* buffer, int bufferSize);
+	//para enviar de servidor a cliente conectado
+	bool sendTo(SocketHandle socket, const char* msg, const AddressHandle address);
+	bool receiveFrom(SocketHandle socket, char* buffer, int bufferSize, AddressHandle remoteAddress);
+	//retorna el tamano de sockaddr_in
+	size_t sizeOfsockaddr_in();
 
 };
 

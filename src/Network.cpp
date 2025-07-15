@@ -72,7 +72,19 @@ bool Network::sendTo(SocketHandle socket, const char* msg, const char* ip, USHOR
 	}
 }
 
-bool Network::receiveFrom(SocketHandle socket, char* buffer, int bufferSize)
+bool Network::sendTo(SocketHandle socket, const char* msg, const AddressHandle address)
+{
+	sockaddr_in* addrIn = reinterpret_cast<sockaddr_in*>(address);
+	SOCKET s = reinterpret_cast<SOCKET>(socket);
+	int msglen = static_cast<int>(strlen(msg));
+	sockaddr* addr = reinterpret_cast<sockaddr*>(addrIn);
+	int result = sendto(s, msg, msglen, 0, addr, sizeof(*addrIn));
+	if (result == SOCKET_ERROR) {
+		return false; 
+	}
+}
+
+bool Network::receiveFrom(SocketHandle socket, char* buffer, int bufferSize, AddressHandle remoteAddress)
 {
 	sockaddr_in clientAddr = { 0 };
 	int addrlen = sizeof(clientAddr);
@@ -80,11 +92,19 @@ bool Network::receiveFrom(SocketHandle socket, char* buffer, int bufferSize)
 	int result = recvfrom(s, buffer, bufferSize, 0, reinterpret_cast<sockaddr*>(&clientAddr), &addrlen);
 	if (result > 0) {
 		buffer[result] = '\0'; //seguro 
+		//hacer copia de clientAddr
+		if(remoteAddress!=nullptr)
+			memcpy_s(remoteAddress, sizeof(sockaddr_in), &clientAddr, sizeof(sockaddr_in));
 		return true; 
 	}
 	else {
 		return false;
 	}
+}
+
+size_t Network::sizeOfsockaddr_in()
+{
+	return sizeof(sockaddr_in);
 }
 
 
