@@ -7,10 +7,11 @@
 #include "raylib.h"
 #include "resource_dir.h"	// utility header for SearchAndSetResourceDir
 #include <iostream>
+#include <sstream>
 #define LOG(x) std::cout << x << std::endl
 #include "Network.h"	
 #define PORT 7777
-#define BUFFLEN 256
+#define BUFFLEN 256 //Tamaño maximo de mensaje enviado por la red
 
 enum EAPPState
 {
@@ -41,6 +42,10 @@ Vector2 player1Pos, player1Vel,  player2Pos, player2Vel, ballPos, ballVel;
 //velocidad deseada, se establece con los inputs
 Vector2 player1DesVel, player2DesVel;
 
+int player1Score = 0, player2Score = 0;
+std::ostringstream p1s, p2s;
+std::string strp1s = "0", strp2s = "0";
+
 int main ()
 {
 	SetConfigFlags(FLAG_VSYNC_HINT | FLAG_WINDOW_HIGHDPI);
@@ -56,7 +61,8 @@ int main ()
 	}
 	AppState = EAPPState::MENU;
 
-	
+	ballVel = { 50,50 };
+
 	// game loop
 	while (!WindowShouldClose())		// run the loop untill the user presses ESCAPE or presses the Close button on the window
 	{
@@ -177,6 +183,44 @@ void UpdateServer()
 	//la posicion del jugador 2 se actualiza con lo que envía el cliente
 
 	//enviar al cliente la posición del jugador 1 y la bola
+
+	//Calcular el movimiento de la pelota
+	ballPos.x += ballVel.x * GetFrameTime();
+	ballPos.y += ballVel.y * GetFrameTime();
+
+	//Colision con las paredes de arriba y abajo
+	if (ballPos.y <= 20 || ballPos.y >= GetScreenHeight() - 20) {
+		ballVel.y *= -1;
+	}
+
+	//Colision con las paredes de izquierda y derecha
+	if (ballPos.x < 20) {
+		ballVel.x *= -1;
+		player2Score += 1;
+		p2s.clear();
+		p2s << player2Score;
+		strp2s = p2s.str();
+	}
+	if( ballPos.x >= GetScreenWidth() - 20) {
+		ballVel.x *= -1;
+		player1Score += 1;
+		p1s.clear();
+		p1s << player1Score;
+		strp1s = p1s.str();
+	}
+
+	//Colision con las paletas
+	if (ballPos.x +20 > player1Pos.x && ballPos.x -20 < player1Pos.x + playerWidth) {
+		if (ballPos.y + 20 > player1Pos.y && ballPos.y -20 < player1Pos.y + playerHeight) {
+			ballVel.x *= -1;
+		}
+	}
+	if (ballPos.x +20 > player2Pos.x && ballPos.x -20 < player2Pos.x + playerWidth) {
+		if (ballPos.y + 20 > player2Pos.y && ballPos.y -20 < player2Pos.y + playerHeight) {
+			ballVel.x *= -1;
+		}
+	}
+
 	if( remoteAddress != nullptr)
 	{
 		sprintf(buffer, "P1,%f,%f,%f", ballPos.x, ballPos.y, player1Pos.y);
@@ -279,6 +323,10 @@ void DrawServer()
 	DrawCircle(ballPos.x, ballPos.y, 20, RAYWHITE);
 
 	DrawText("Servidor", 50, 10, 20, DARKGRAY);
+
+	DrawText(strp1s.c_str(), (GetScreenWidth() / 2) - 100, 10, 40, RAYWHITE);
+
+	DrawText(strp2s.c_str(), (GetScreenWidth() / 2) + 60, 10, 40, RAYWHITE);
 }
 
 void DrawClient()

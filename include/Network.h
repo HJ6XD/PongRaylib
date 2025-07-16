@@ -1,4 +1,8 @@
 #pragma once
+/*
+	Envoltura de la API WinSock2
+	Eventualmente podría envolver la api sockets de gnu/linux
+*/
 typedef unsigned short USHORT;
 typedef void* SocketHandle;
 typedef void* AddressHandle;
