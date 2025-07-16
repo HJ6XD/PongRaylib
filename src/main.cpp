@@ -43,7 +43,6 @@ Vector2 player1Pos, player1Vel,  player2Pos, player2Vel, ballPos, ballVel;
 Vector2 player1DesVel, player2DesVel;
 
 int player1Score = 0, player2Score = 0;
-std::ostringstream p1s, p2s;
 std::string strp1s = "0", strp2s = "0";
 
 int main ()
@@ -197,16 +196,12 @@ void UpdateServer()
 	if (ballPos.x < 20) {
 		ballVel.x *= -1;
 		player2Score += 1;
-		p2s.clear();
-		p2s << player2Score;
-		strp2s = p2s.str();
+		strp2s = std::to_string(player2Score);
 	}
 	if( ballPos.x >= GetScreenWidth() - 20) {
 		ballVel.x *= -1;
 		player1Score += 1;
-		p1s.clear();
-		p1s << player1Score;
-		strp1s = p1s.str();
+		strp1s = std::to_string(player1Score);
 	}
 
 	//Colision con las paletas
@@ -340,6 +335,9 @@ void DrawClient()
 	DrawCircle(ballPos.x, ballPos.y, 20, RAYWHITE);
 	DrawText("Cliente", 50, 10, 20, DARKGRAY);
 
+	DrawText(strp1s.c_str(), (GetScreenWidth() / 2) - 100, 10, 40, RAYWHITE);
+
+	DrawText(strp2s.c_str(), (GetScreenWidth() / 2) + 60, 10, 40, RAYWHITE);
 	//mostrar mensaje misc
 	if( screenMsg!= nullptr && screenMsg[0] != '\0' )
 	{
