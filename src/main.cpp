@@ -265,6 +265,8 @@ void UpdateClient()
 	//primero recibimos los datos del servidor
 	char buffer[BUFFLEN];
 	AddressHandle remoteAddress = nullptr;
+
+
 	//debemos procesar todos los mensajes recibidos para evitar lag
 	while (network->receiveFrom(socket, buffer, BUFFLEN, remoteAddress))
 	{
@@ -281,6 +283,14 @@ void UpdateClient()
 		}
 	}
 
+	if (ballPos.x < 20) {
+		player2Score += 1;
+		strp2s = std::to_string(player2Score);
+	}
+	if (ballPos.x >= GetScreenWidth() - 20) {
+		player1Score += 1;
+		strp1s = std::to_string(player1Score);
+	}
 
 	//Por convencion, el cliente es el jugador 2 y está a la derecha
 	if (IsKeyDown(KEY_W) && player2Pos.y > 0)
